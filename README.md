@@ -1,6 +1,11 @@
-# React + Vite
+# Used:
+react.js
+vite
+yarn
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+# Description:
+Web-example for testing graphic tablet used like physical UZK emulator. Program converts tablet coordinates to data index from data table.
+
 
 Currently, two official plugins are available:
 
