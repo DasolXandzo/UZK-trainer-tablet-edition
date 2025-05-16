@@ -87,8 +87,19 @@ export default function App() {
         let row = Math.min(rows - 1, Math.floor((relativeY / height) * rows));
         let colIndex = Math.min(cols - 1, Math.floor((relativeX / width) * cols));
     
-        let centerLeft = Math.floor(cols / 2) - 1; // левый центральный столбец (при увеличении кол-ва столбцов в 50 раз делаем -50)
-        let centerRight = Math.floor(cols / 2); // правый центральный столбец (при увеличении кол-ва столбцов в 50 раз добавляем +50)
+        // минимальное число cols и rows мне дали 22 и 30 соответственно
+        // поэтому их значение может быть либо таким же, либо больше (в идеале, всегда чётное кол-во cols)
+        // на всякий случай добавил пересчёт ширины шва
+        let centerLeft = 0; // крайний левый центральный столбец
+        let centerRight = 0; // крайний правый центральный столбец
+        if (cols == 22) {
+            centerLeft = Math.floor(cols / 2) - 1;
+            centerRight = Math.floor(cols / 2);
+        } else if (cols > 22) {
+            let defaultColWidth = cols / 22;
+            centerLeft = Math.floor(cols / 2) - defaultColWidth;
+            centerRight = Math.floor(cols / 2) + defaultColWidth;
+        }
         let col, side;
     
         if (colIndex < centerLeft) {
@@ -120,7 +131,7 @@ export default function App() {
         <div className="container" ref={containerRef} onPointerMove={handlePointerMove}>
             
             {/* Отображение сетки (бессмысленно при чрезмерно большом колличестве ячеек) */}
-            { gridVisible && <div className="grid-overlay">
+            { gridVisible && (<div className="grid-overlay">
                                 {gridState.map((row, rowIndex) =>
                                     row.map((cell, colIndex) => (
                                         <div
@@ -128,12 +139,13 @@ export default function App() {
                                             className={`grid-cell ${cell ? "active" : ""}`}
                                             style={{
                                                 width: 'calc(100% / ${cols})',
-                                                height: 'calc(100% / ${rows})'
+                                                height: 'calc(100% / ${rows})',
+                                                backgroundColor: !cell && (cols >= 22 && colIndex >= centerLeft && colIndex <= centerRight) ? "#ccc" || undefined
                                             }}
                                         ></div>
                                     ))
                                 )}
-                            </div>}
+                            </div>)}
         
             <div className="debug-overlay" ref={simulatorRef}>
                 <p>Индекс: {debugIndex}</p>
