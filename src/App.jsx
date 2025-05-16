@@ -13,6 +13,9 @@ export default function App() {
     const [isFullscreen, setIsFullscreen] = useState(true);
     const [exampleIndex, setExampleState] = useState(0);
 
+    const [centerLeft, setCenterLeft] = useState(0); // крайний левый центральный столбец
+    const [centerRight, setCenterRight] = useState(0); // крайний правый центральный столбец
+
     const handleIncrement = () => {
         setExampleState((prev) => Math.min(10, prev+1))
     }
@@ -35,6 +38,24 @@ export default function App() {
 
     const rows = 30; //1200;
     const cols = 22; //1100;
+
+    useEffect (() => {
+        // минимальное число cols и rows мне дали 22 и 30 соответственно
+        // поэтому их значение может быть либо таким же, либо больше (в идеале, всегда чётное кол-во cols)
+        // на всякий случай добавил пересчёт ширины шва
+        if (cols == 22) {
+            setCenterLeft(Math.floor(cols / 2) - 1);
+            setCenterRight(Math.floor(cols / 2));
+        } else if (cols > 22) {
+            let defaultColWidth = cols / 22;
+            setCenterLeft(Math.floor(cols / 2) - defaultColWidth);
+            setCenterRight(Math.floor(cols / 2) + defaultColWidth - 1);
+        } 
+
+        console.log("processing center cols end");
+        console.log("CenterLeft: ", centerLeft);
+        console.log("CenterRight: ", centerRight);
+    })
 
     document.documentElement.style.setProperty('--rows', rows);
     document.documentElement.style.setProperty('--cols', cols);
@@ -87,19 +108,6 @@ export default function App() {
         let row = Math.min(rows - 1, Math.floor((relativeY / height) * rows));
         let colIndex = Math.min(cols - 1, Math.floor((relativeX / width) * cols));
     
-        // минимальное число cols и rows мне дали 22 и 30 соответственно
-        // поэтому их значение может быть либо таким же, либо больше (в идеале, всегда чётное кол-во cols)
-        // на всякий случай добавил пересчёт ширины шва
-        let centerLeft = 0; // крайний левый центральный столбец
-        let centerRight = 0; // крайний правый центральный столбец
-        if (cols == 22) {
-            centerLeft = Math.floor(cols / 2) - 1;
-            centerRight = Math.floor(cols / 2);
-        } else if (cols > 22) {
-            let defaultColWidth = cols / 22;
-            centerLeft = Math.floor(cols / 2) - defaultColWidth;
-            centerRight = Math.floor(cols / 2) + defaultColWidth;
-        }
         let col, side;
     
         if (colIndex < centerLeft) {
@@ -140,7 +148,7 @@ export default function App() {
                                             style={{
                                                 width: 'calc(100% / ${cols})',
                                                 height: 'calc(100% / ${rows})',
-                                                backgroundColor: !cell && (cols >= 22 && colIndex >= centerLeft && colIndex <= centerRight) ? "#ccc" || undefined
+                                                backgroundColor: !cell && (cols >= 22 && colIndex >= centerLeft && colIndex <= centerRight) ? "#696969" : undefined
                                             }}
                                         ></div>
                                     ))

@@ -34,7 +34,7 @@ html, body {
 
 .grid-cell {
   box-sizing: border-box;
-  border: 1px solid hsla(0, 0%, 0%, 0.5);
+  border: 1px solid #000000;
   background: transparent;
 }
 
