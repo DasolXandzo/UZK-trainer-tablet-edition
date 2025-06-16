@@ -37,8 +37,8 @@ export default function App() {
     const cols = 22;
 
     // Параметры шва в условных единицах
-    const seamStart = 330; // начало шва
-    const seamLength = 94; // длина шва
+    const seamStart = 500; // начало шва
+    const seamLength = 100; // длина шва
     const totalWidth = 1100; // общая ширина области
     const totalHeight = 1200; // общая высота области
 
@@ -96,9 +96,9 @@ export default function App() {
             <>
                 {col}{row + 1}{side}
                 <br />
-                Y: {internalX}
+                X: {internalX}
                 <br />
-                X: {internalY}
+                Y: {internalY}
             </>
         );
     };
@@ -109,23 +109,23 @@ export default function App() {
             <>
                 {col}{row + 1}{side}, {col + 1}{row + 1}{side}, {col}{row + 2}{side}, {col + 1}{row + 2}{side}
                 <br />
-                Y: {internalX}
+                X: {internalX}
                 <br />
-                X: {internalY}
+                Y: {internalY}
             </>
         );
     };
 
     const handlePointerMove = (event) => {
-        //if (event.pointerType !== "pen"){
+        if (event.pointerType !== "pen"){
             containerRef.current.style.cursor = "default";
             simulatorRef.current.style.pointerEvents = "auto";
-        //     return;
-        // }
-        // else{
-        //     containerRef.current.style.cursor = "none";
-        //     simulatorRef.current.style.pointerEvents = "none";
-        // }
+            return;
+        }
+        else{
+            containerRef.current.style.cursor = "none";
+            simulatorRef.current.style.pointerEvents = "none";
+        }
     
         const container = containerRef.current;
         if (!container) return;
