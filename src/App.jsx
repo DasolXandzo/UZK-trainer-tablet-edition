@@ -36,7 +36,33 @@ export default function App() {
     const rows = 30;
     const cols = 22;
 
+    // Параметры шва в условных единицах
+    const seamStart = 330; // начало шва
+    const seamLength = 94; // длина шва
+    const totalWidth = 1100; // общая ширина области
+    const totalHeight = 1200; // общая высота области
+
+    // Константы для пересчета координат
+    const cellWidth = 50; // ширина ячейки в условных единицах
+    const cellHeight = 40; // высота ячейки в условных единицах
+    const leftColumns = 10; // количество столбцов слева от шва
+    const rightColumns = 10; // количество столбцов справа от шва
+
     useEffect (() => {
+        // Расчет ширины столбцов слева и справа от шва
+        const leftSpace = seamStart;
+        const rightSpace = totalWidth - (seamStart + seamLength);
+        const leftColumnWidth = leftSpace / leftColumns;
+        const rightColumnWidth = rightSpace / rightColumns;
+
+        // Обновляем CSS переменные для сетки
+        document.documentElement.style.setProperty('--left-column-width', `${leftColumnWidth}px`);
+        document.documentElement.style.setProperty('--right-column-width', `${rightColumnWidth}px`);
+        document.documentElement.style.setProperty('--seam-start', `${seamStart}px`);
+        document.documentElement.style.setProperty('--seam-length', `${seamLength}px`);
+        document.documentElement.style.setProperty('--total-width', `${totalWidth}px`);
+        document.documentElement.style.setProperty('--total-height', `${totalHeight}px`);
+
         // минимальное число cols и rows мне дали 22 и 30 соответственно
         // поэтому их значение может быть либо таким же, либо больше (в идеале, всегда чётное кол-во cols)
         // на всякий случай добавил пересчёт ширины шва
@@ -52,13 +78,13 @@ export default function App() {
         console.log("processing center cols end");
         console.log("CenterLeft: ", centerLeft);
         console.log("CenterRight: ", centerRight);
-    })
+    }, []);
 
     document.documentElement.style.setProperty('--rows', rows);
     document.documentElement.style.setProperty('--cols', cols);
 
     const [gridState, setGridState] = useState(
-        Array(rows).fill().map(() => Array(cols).fill(false))
+        Array(rows).fill().map(() => Array(leftColumns + rightColumns).fill(false))
     );
 
     const [debugIndex, setDebugIndex] = useState("null");
@@ -94,7 +120,7 @@ export default function App() {
         //if (event.pointerType !== "pen"){
             containerRef.current.style.cursor = "default";
             simulatorRef.current.style.pointerEvents = "auto";
-            //return;
+        //     return;
         // }
         // else{
         //     containerRef.current.style.cursor = "none";
@@ -109,26 +135,41 @@ export default function App() {
         const relativeX = event.clientX - left;
         const relativeY = event.clientY - top;
     
-        let row = Math.min(rows - 1, Math.floor((relativeY / height) * rows));
-        let colIndex = Math.min(cols - 1, Math.floor((relativeX / width) * cols));
+        // Переводим координаты в условные единицы
+        const absoluteX = (relativeX / width) * totalWidth;
+        const absoluteY = (relativeY / height) * totalHeight;
     
-        // Calculate internal cell coordinates
-        const cellWidth = width / cols;
-        const cellHeight = height / rows;
-        const internalX = Math.floor((relativeX % cellWidth) * (50 / cellWidth));
-        const internalY = Math.floor((relativeY % cellHeight) * (40 / cellHeight));
-    
+        let row = Math.min(rows - 1, Math.floor(absoluteY / cellHeight));
         let col, side;
     
-        if (colIndex < centerLeft) {
-            col = centerLeft - colIndex;
+        // Определяем положение относительно шва
+        let gridColIndex; // индекс для gridState
+        if (absoluteX < seamStart) {
+            // Левая часть
+            const leftColumnWidth = seamStart / leftColumns;
+            col = leftColumns - Math.floor(absoluteX / leftColumnWidth);
             side = "l";
-        } else if (colIndex > centerRight) {
-            col = colIndex - centerRight;
+            gridColIndex = Math.floor(absoluteX / leftColumnWidth); // для gridState
+        } else if (absoluteX > seamStart + seamLength) {
+            // Правая часть
+            const rightColumnWidth = (totalWidth - (seamStart + seamLength)) / rightColumns;
+            col = Math.floor((absoluteX - (seamStart + seamLength)) / rightColumnWidth) + 1;
             side = "r";
+            gridColIndex = leftColumns + Math.floor((absoluteX - (seamStart + seamLength)) / rightColumnWidth); // для gridState
         } else {
+            // Шов
             col = 0;
+            side = null;
+            gridColIndex = -1; // неактивная ячейка
         }
+    
+        // Расчет внутренних координат ячейки
+        const cellLeft = side === "l" ? 
+            (leftColumns - col) * (seamStart / leftColumns) : 
+            seamStart + seamLength + (col - 1) * ((totalWidth - (seamStart + seamLength)) / rightColumns);
+        
+        const internalX = Math.floor((absoluteX - cellLeft) * (cellWidth / (side === "l" ? seamStart / leftColumns : (totalWidth - (seamStart + seamLength)) / rightColumns)));
+        const internalY = Math.floor((absoluteY % cellHeight) * (cellHeight / cellHeight));
     
         if (col === 0) {
             setDebugIndex("null");
@@ -140,11 +181,9 @@ export default function App() {
             }
         }
     
-        console.log(`Row=${row + 1}, Col=${col === 0 ? "null" : col}, Side=${side || "center"}, Internal=(${internalX},${internalY})`);
-    
         setGridState((prevGrid) =>
             prevGrid.map((r, rIndex) =>
-                r.map((c, cIndex) => (rIndex === row && cIndex === colIndex ? true : false))
+                r.map((c, cIndex) => (rIndex === row && cIndex === gridColIndex ? true : false))
             )
         );
     };
@@ -152,22 +191,73 @@ export default function App() {
     return isFullscreen ? (
         <div className="container" ref={containerRef} onPointerMove={handlePointerMove}>
             
-            {/* Отображение сетки (бессмысленно при чрезмерно большом колличестве ячеек) */}
-            { gridVisible && (<div className="grid-overlay">
-                                {gridState.map((row, rowIndex) =>
-                                    row.map((cell, colIndex) => (
-                                        <div
-                                            key={`${rowIndex}-${colIndex}`}
-                                            className={`grid-cell ${cell ? "active" : ""}`}
-                                            style={{
-                                                width: 'calc(100% / ${cols})',
-                                                height: 'calc(100% / ${rows})',
-                                                backgroundColor: !cell && (cols >= 22 && colIndex >= centerLeft && colIndex <= centerRight) ? "#696969" : undefined
-                                            }}
-                                        ></div>
-                                    ))
-                                )}
-                            </div>)}
+            {/* Отображение сетки */}
+            { gridVisible && (
+                <>
+                    {/* Основная сетка с делением на области */}
+                    <div className="grid-overlay" style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: '100%',
+                        display: 'flex'
+                    }}>
+                        {/* Левая часть сетки */}
+                        <div style={{
+                            width: `${(seamStart / totalWidth) * 100}%`,
+                            height: '100%',
+                            display: 'grid',
+                            gridTemplateColumns: `repeat(${leftColumns}, 1fr)`,
+                            gridTemplateRows: `repeat(${rows}, 1fr)`
+                        }}>
+                            {gridState.map((row, rowIndex) =>
+                                row.slice(0, leftColumns).map((cell, colIndex) => (
+                                    <div
+                                        key={`left-${rowIndex}-${colIndex}`}
+                                        className={`grid-cell ${cell ? "active" : ""}`}
+                                        style={{
+                                            width: '100%',
+                                            height: '100%',
+                                            border: '1px solid rgb(0, 0, 0)'
+                                        }}
+                                    ></div>
+                                ))
+                            )}
+                        </div>
+
+                        {/* Шов */}
+                        <div style={{
+                            width: `${(seamLength / totalWidth) * 100}%`,
+                            height: '100%',
+                            backgroundColor: '#696969'
+                        }}></div>
+
+                        {/* Правая часть сетки */}
+                        <div style={{
+                            width: `${((totalWidth - (seamStart + seamLength)) / totalWidth) * 100}%`,
+                            height: '100%',
+                            display: 'grid',
+                            gridTemplateColumns: `repeat(${rightColumns}, 1fr)`,
+                            gridTemplateRows: `repeat(${rows}, 1fr)`
+                        }}>
+                            {gridState.map((row, rowIndex) =>
+                                row.slice(leftColumns).map((cell, colIndex) => (
+                                    <div
+                                        key={`right-${rowIndex}-${colIndex}`}
+                                        className={`grid-cell ${cell ? "active" : ""}`}
+                                        style={{
+                                            width: '100%',
+                                            height: '100%',
+                                            border: '1px solid rgb(0, 0, 0)'
+                                        }}
+                                    ></div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                </>
+            )}
         
             <div className="debug-overlay" ref={simulatorRef}>
                 <p>Индекс: {debugIndex}</p>
