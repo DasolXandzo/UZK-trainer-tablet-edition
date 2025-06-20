@@ -12,6 +12,8 @@ export default function App() {
 
     const [centerLeft, setCenterLeft] = useState(0); // крайний левый центральный столбец
     const [centerRight, setCenterRight] = useState(0); // крайний правый центральный столбец
+    const [seamStart, setSeamStart] = useState(500); // начальная координата шва в условных единицах
+    const [seamLength, setSeamLength] = useState(100); // ширина шва в условных единицах
 
     const handleIncrement = () => {
         setExampleState((prev) => Math.min(10, prev+1))
@@ -36,9 +38,7 @@ export default function App() {
     const rows = 30;
     const cols = 22;
 
-    // Параметры шва в условных единицах
-    const seamStart = 500; // начало шва
-    const seamLength = 100; // длина шва
+    // Параметры рабочей области в условных единицах
     const totalWidth = 1100; // общая ширина области
     const totalHeight = 1200; // общая высота области
 
@@ -49,7 +49,8 @@ export default function App() {
     const rightColumns = 10; // количество столбцов справа от шва
 
     useEffect (() => {
-        // Расчет ширины столбцов слева и справа от шва
+        // Расчет начала шва, ширины столбцов слева и справа от шва
+        setSeamStart((totalWidth - seamLength) / 2);
         const leftSpace = seamStart;
         const rightSpace = totalWidth - (seamStart + seamLength);
         const leftColumnWidth = leftSpace / leftColumns;
@@ -78,7 +79,7 @@ export default function App() {
         console.log("processing center cols end");
         console.log("CenterLeft: ", centerLeft);
         console.log("CenterRight: ", centerRight);
-    }, []);
+    }, [seamLength]);
 
     document.documentElement.style.setProperty('--rows', rows);
     document.documentElement.style.setProperty('--cols', cols);
@@ -277,6 +278,17 @@ export default function App() {
                         <option value="cells">Ячейки</option>
                         <option value="nodes">Узлы</option>
                     </select>
+                </div>
+
+                <div className="seam-length-input">
+                    Ширина шва: 
+                    <input id="seamLengthInput"
+                        type="number"
+                        min={10}
+                        max={1000}
+                        onChange={(e) => setSeamLength(Number(e.target.value))}
+                        value={seamLength}
+                    />
                 </div>
                 
                 {/* Кнопка переключения состояния отображения сетки (очевидно, бессмысленно при отсутсвии сетки) */}
